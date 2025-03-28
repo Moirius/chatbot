@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot La Station</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 700px; margin: auto; background: #f9f9f9; }
+    #chatbox { background: white; padding: 20px; border-radius: 8px; min-height: 300px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .message { margin: 10px 0; }
+    .user { font-weight: bold; color: #007acc; }
+    .bot { color: #333; }
+    input, button { padding: 10px; font-size: 1rem; margin-top: 10px; }
+    input { width: 80%; }
+    button { width: 18%; }
+  </style>
+</head>
+<body>
+  <h1>🤖 Chatbot de La Station</h1>
+  <div id="chatbox"></div>
+
+  <input id="userInput" type="text" placeholder="Posez votre question ici..." />
+  <button onclick="sendMessage()">Envoyer</button>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const chatbox = document.getElementById("chatbox");
+      const message = input.value.trim();
+      if (!message) return;
+
+      chatbox.innerHTML += `<div class="message user">🧑‍💻 Vous : ${message}</div>`;
+      input.value = "";
+
+      const res = await fetch("http://127.0.0.1:8000/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: message })
+      });
+
+      const data = await res.json();
+      chatbox.innerHTML += `<div class="message bot">🤖 Bot : ${data.answer}</div>`;
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+  </script>
+</body>
+</html>
