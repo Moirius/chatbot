@@ -2,23 +2,75 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Chatbot La Station</title>
+  <title>Chatbot - La Station</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 700px; margin: auto; background: #f9f9f9; }
-    #chatbox { background: white; padding: 20px; border-radius: 8px; min-height: 300px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    .message { margin: 10px 0; }
-    .user { font-weight: bold; color: #007acc; }
-    .bot { color: #333; }
-    input, button { padding: 10px; font-size: 1rem; margin-top: 10px; }
-    input { width: 80%; }
-    button { width: 18%; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 40px;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    h1 {
+      color: #222;
+      text-align: center;
+    }
+
+    #chatbox {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      min-height: 300px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .message {
+      margin-bottom: 10px;
+    }
+
+    .user {
+      color: #007acc;
+      font-weight: bold;
+    }
+
+    .bot {
+      color: #333;
+    }
+
+    input, button {
+      padding: 12px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    input {
+      width: 75%;
+    }
+
+    button {
+      width: 22%;
+      margin-left: 2%;
+      cursor: pointer;
+      background-color: #007acc;
+      color: white;
+      border: none;
+    }
+
+    button:hover {
+      background-color: #005e99;
+    }
   </style>
 </head>
 <body>
   <h1>🤖 Chatbot de La Station</h1>
+
   <div id="chatbox"></div>
 
-  <input id="userInput" type="text" placeholder="Posez votre question ici..." />
+  <input id="userInput" type="text" placeholder="Posez une question..." />
   <button onclick="sendMessage()">Envoyer</button>
 
   <script>
@@ -26,20 +78,29 @@
       const input = document.getElementById("userInput");
       const chatbox = document.getElementById("chatbox");
       const message = input.value.trim();
+
       if (!message) return;
 
+      // Afficher la question de l'utilisateur
       chatbox.innerHTML += `<div class="message user">🧑‍💻 Vous : ${message}</div>`;
       input.value = "";
 
-      const res = await fetch("http://127.0.0.1:8000/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: message })
-      });
+      try {
+        const res = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: message })
+        });
 
-      const data = await res.json();
-      chatbox.innerHTML += `<div class="message bot">🤖 Bot : ${data.answer}</div>`;
-      chatbox.scrollTop = chatbox.scrollHeight;
+        const data = await res.json();
+
+        // Afficher la réponse du bot
+        chatbox.innerHTML += `<div class="message bot">🤖 Bot : ${data.answer}</div>`;
+        chatbox.scrollTop = chatbox.scrollHeight;
+      } catch (err) {
+        chatbox.innerHTML += `<div class="message bot">❌ Erreur : impossible de contacter le serveur.</div>`;
+        console.error(err);
+      }
     }
   </script>
 </body>
