@@ -5,7 +5,7 @@
   <title>Chatbot - La Station</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       background-color: #f9f9f9;
       margin: 0;
       padding: 40px;
@@ -25,10 +25,11 @@
       min-height: 300px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       margin-bottom: 20px;
+      line-height: 1.6;
     }
 
     .message {
-      margin-bottom: 10px;
+      margin-bottom: 16px;
     }
 
     .user {
@@ -38,6 +39,10 @@
 
     .bot {
       color: #333;
+    }
+
+    .bot strong {
+      color: #000;
     }
 
     input, button {
@@ -63,12 +68,20 @@
     button:hover {
       background-color: #005e99;
     }
+
+    #loader {
+      display: none;
+      text-align: center;
+      font-style: italic;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
   <h1>🤖 Chatbot de La Station</h1>
 
   <div id="chatbox"></div>
+  <div id="loader">⏳ Le bot réfléchit...</div>
 
   <input id="userInput" type="text" placeholder="Posez une question..." />
   <button onclick="sendMessage()">Envoyer</button>
@@ -77,13 +90,14 @@
     async function sendMessage() {
       const input = document.getElementById("userInput");
       const chatbox = document.getElementById("chatbox");
+      const loader = document.getElementById("loader");
       const message = input.value.trim();
 
       if (!message) return;
 
-      // Afficher la question de l'utilisateur
-      chatbox.innerHTML += `<div class="message user">🧑‍💻 Vous : ${message}</div>`;
+      chatbox.innerHTML += `<div class="message user">🧑‍💻 <strong>Vous :</strong> ${message}</div>`;
       input.value = "";
+      loader.style.display = "block";
 
       try {
         const res = await fetch("/ask", {
@@ -94,12 +108,13 @@
 
         const data = await res.json();
 
-        // Afficher la réponse du bot
-        chatbox.innerHTML += `<div class="message bot">🤖 Bot : ${data.answer}</div>`;
+        chatbox.innerHTML += `<div class="message bot">🤖 <strong>Bot :</strong> <span>${data.answer}</span></div>`;
         chatbox.scrollTop = chatbox.scrollHeight;
       } catch (err) {
-        chatbox.innerHTML += `<div class="message bot">❌ Erreur : impossible de contacter le serveur.</div>`;
+        chatbox.innerHTML += `<div class="message bot">❌ <strong>Erreur :</strong> impossible de contacter le serveur.</div>`;
         console.error(err);
+      } finally {
+        loader.style.display = "none";
       }
     }
   </script>
