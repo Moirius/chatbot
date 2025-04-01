@@ -2,91 +2,130 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Chatbot - La Station</title>
+  <title>La Station - Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f9f9f9;
-      margin: 0;
-      padding: 40px;
-      max-width: 700px;
-      margin: auto;
+    * {
+      box-sizing: border-box;
     }
 
-    h1 {
-      color: #222;
-      text-align: center;
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      font-family: 'DM Sans', sans-serif;
+      color: #111;
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #ffffff;
+      padding: 40px 20px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .sidebar img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 60px;
     }
 
     #chatbox {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      min-height: 300px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-      line-height: 1.6;
+      font-size: 1.6rem;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      max-width: 900px;
+      margin-bottom: 40px;
     }
 
-    .message {
-      margin-bottom: 16px;
+    .input-zone {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 900px;
+      width: 100%;
     }
 
-    .user {
-      color: #007acc;
-      font-weight: bold;
+    .shortcuts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
-    .bot {
-      color: #333;
-    }
-
-    .bot strong {
-      color: #000;
-    }
-
-    input, button {
-      padding: 12px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-
-    input {
-      width: 75%;
-    }
-
-    button {
-      width: 22%;
-      margin-left: 2%;
-      cursor: pointer;
-      background-color: #007acc;
-      color: white;
+    .shortcut-btn {
+      background: #f0f0f0;
       border: none;
+      border-radius: 25px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
     }
 
-    button:hover {
-      background-color: #005e99;
+    .shortcut-btn:hover {
+      background: #e0e0e0;
+    }
+
+    #userInput {
+      width: 100%;
+      padding: 20px;
+      font-size: 1.5rem;
+      border: none;
+      border-radius: 30px;
+      outline: none;
+      background: #444;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
     }
 
     #loader {
-      display: none;
-      text-align: center;
       font-style: italic;
+      font-size: 1rem;
       margin-top: 10px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>🤖 Chatbot de La Station</h1>
+  <div class="sidebar">
+    <img src="/static/LOGO_LA_STATION_05.png" alt="Logo La Station">
+  </div>
+  <div class="content">
+    <div>
+      <div id="chatbox"></div>
+      <div id="loader">⏳ Le bot réfléchit...</div>
+    </div>
 
-  <div id="chatbox"></div>
-  <div id="loader">⏳ Le bot réfléchit...</div>
+    <div class="input-zone">
+      <div class="shortcuts">
+        <button class="shortcut-btn" onclick="insertShortcut('Quels types de vidéos proposez-vous ?')">Types de vidéos</button>
+        <button class="shortcut-btn" onclick="insertShortcut('Quels sont vos tarifs ?')">Tarifs</button>
+        <button class="shortcut-btn" onclick="insertShortcut('Comment se déroule un tournage ?')">Déroulement d’un tournage</button>
+        <button class="shortcut-btn" onclick="insertShortcut('Proposez-vous des abonnements ?')">Abonnements</button>
+        <button class="shortcut-btn" onclick="insertShortcut('Quel matériel utilisez-vous ?')">Matériel utilisé</button>
+      </div>
 
-  <input id="userInput" type="text" placeholder="Posez une question..." />
-  <button onclick="sendMessage()">Envoyer</button>
+      <input id="userInput" type="text" placeholder="Posez une question..." onkeydown="if(event.key==='Enter'){sendMessage()}" />
+    </div>
+  </div>
 
   <script>
+    function insertShortcut(text) {
+      document.getElementById("userInput").value = text;
+      document.getElementById("userInput").focus();
+    }
+
     async function sendMessage() {
       const input = document.getElementById("userInput");
       const chatbox = document.getElementById("chatbox");
@@ -95,9 +134,8 @@
 
       if (!message) return;
 
-      chatbox.innerHTML += `<div class="message user">🧑‍💻 <strong>Vous :</strong> ${message}</div>`;
-      input.value = "";
       loader.style.display = "block";
+      input.disabled = true;
 
       try {
         const res = await fetch("/ask", {
@@ -107,15 +145,32 @@
         });
 
         const data = await res.json();
+        const answer = data.answer;
 
-        chatbox.innerHTML += `<div class="message bot">🤖 <strong>Bot :</strong> <span>${data.answer}</span></div>`;
-        chatbox.scrollTop = chatbox.scrollHeight;
+        typeWriterEffect(chatbox, answer);
       } catch (err) {
-        chatbox.innerHTML += `<div class="message bot">❌ <strong>Erreur :</strong> impossible de contacter le serveur.</div>`;
+        chatbox.innerHTML += `\n\n❌ Erreur : impossible de contacter le serveur.`;
         console.error(err);
       } finally {
+        input.value = "";
+        input.disabled = false;
         loader.style.display = "none";
       }
+    }
+
+    function typeWriterEffect(element, text) {
+      let i = 0;
+      element.innerHTML = "";
+      const interval = setInterval(() => {
+        const char = text.charAt(i);
+        if (char === "\n") {
+          element.innerHTML += "<br>";
+        } else {
+          element.innerHTML += char;
+        }
+        i++;
+        if (i >= text.length) clearInterval(interval);
+      }, 15);
     }
   </script>
 </body>
