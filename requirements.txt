@@ -8,5 +8,7 @@ PyMuPDF
 faiss-cpu
 tiktoken
 jinja2
-unstructured
+unstructured[pdf]
 pdfminer.six
+pi-heif
+
