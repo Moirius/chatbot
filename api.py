@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate  # 👈 Ajouté
+from langchain.prompts import PromptTemplate
 
 # Charger la clé API depuis .env
 load_dotenv()
@@ -26,7 +26,7 @@ app = FastAPI()
 # CORS pour frontend local
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Remplace par ton domaine si besoin
+    allow_origins=["*"],  # À restreindre en production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,15 +42,20 @@ vectorstore = FAISS.load_local(
 )
 print("✅ Index chargé.")
 
-# ➕ Prompt HTML friendly
+# Prompt HTML avec format attendu (context + question séparée)
 prompt_template = PromptTemplate.from_template("""
 Tu es un assistant pour l'entreprise La Station.
-Réponds toujours en HTML interprétable (utilise <b> pour gras, <ul><li> pour les listes, <a> pour les liens...).
-Sois professionnel, clair, synthétique, et bien structuré.
-Question : {query}
+Tu as accès au contexte suivant :
+
+{context}
+
+Réponds de manière claire, synthétique et professionnelle à la question ci-dessous, 
+en utilisant du HTML interprétable : <b>, <ul><li>, <a>, etc.
+
+Question : {question}
 """)
 
-# Initialisation du système RAG
+# Système RAG
 retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4})
 qa_chain = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(openai_api_key=openai_api_key, temperature=0),
@@ -60,20 +65,20 @@ qa_chain = RetrievalQA.from_chain_type(
     chain_type_kwargs={"prompt": prompt_template}
 )
 
-# Modèle de question
+# Modèle d'entrée
 class Question(BaseModel):
     query: str
 
 @app.post("/ask")
 async def ask_question(question: Question):
     print(f"🧠 Question reçue : {question.query}")
-    response = qa_chain.invoke({"query": question.query})
+    response = qa_chain.invoke({"question": question.query})
     return {
         "answer": response["result"],
         "sources": [doc.metadata.get("source", "inconnu") for doc in response["source_documents"]]
     }
 
-# Interface Web
+# Interface web (si utilisée)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
