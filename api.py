@@ -61,11 +61,20 @@ class Question(BaseModel):
 @app.post("/ask")
 async def ask_question(question: Question):
     print(f"🧠 Question reçue : {question.query}")
-    response = qa_chain.invoke({"query": question.query})
+    
+    instruction = (
+        "Réponds clairement à la question en mettant en **gras** les mots importants ou les concepts clés "
+        "dans ta réponse, au format Markdown."
+    )
+    prompt = f"{question.query}\n\n{instruction}"
+
+    response = qa_chain.invoke({"query": prompt})
+
     return {
         "answer": response["result"],
         "sources": [doc.metadata.get("source", "inconnu") for doc in response["source_documents"]]
     }
+
 
 # Interface Web
 app.mount("/static", StaticFiles(directory="static"), name="static")
