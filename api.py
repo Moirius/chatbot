@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
+
 
 # Charger la clé API depuis .env
 load_dotenv()
@@ -43,12 +45,30 @@ print("✅ Index chargé.")
 
 # Initialisation du système RAG
 retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4})
+prompt = PromptTemplate(
+    input_variables=["query"],
+    template="""
+Tu es un assistant pour l'entreprise La Station. Réponds de manière claire, concise et professionnelle.
+
+Tu peux utiliser les balises HTML suivantes dans ta réponse :
+- <strong>pour mettre en gras</strong>
+- <ul><li>pour les listes</li></ul>
+- <a href="https://...">pour les liens</a>
+
+Ne propose aucune action que tu ne peux pas exécuter.
+Ta réponse doit être formatée en HTML.
+
+Question : {query}
+"""
+)
 qa_chain = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(openai_api_key=openai_api_key, temperature=0),
     chain_type="stuff",
     retriever=retriever,
-    return_source_documents=True
+    return_source_documents=True,
+    chain_type_kwargs={"prompt": prompt}
 )
+
 
 # Modèle de question
 class Question(BaseModel):
