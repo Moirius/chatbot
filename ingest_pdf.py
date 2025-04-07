@@ -1,4 +1,4 @@
-# ingest_pdf.py
+# ingest_pdf.py — version optimisée
 
 import os
 from dotenv import load_dotenv
@@ -9,7 +9,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 
-# Charger la clé API
+# Chargement des variables d'environnement
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
@@ -20,20 +20,26 @@ PDF_PATH = "La Station Entreprise (2).pdf"
 FAISS_INDEX_PATH = "faiss_index"
 
 def load_and_split_pdf(pdf_path):
-    print("📄 Lecture du PDF avec UnstructuredPDFLoader...")
+    print("📄 Lecture du PDF...")
     loader = UnstructuredPDFLoader(pdf_path, mode="elements")
     raw_docs = loader.load()
 
-    print("✂️ Découpage en chunks...")
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    print("✂️ Découpage en chunks (500 chars, overlap 100)...")
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
     docs = splitter.split_documents(raw_docs)
     print(f"✅ {len(docs)} chunks générés.")
     return docs
 
 def create_faiss_index(docs):
-    print("🧠 Vectorisation avec OpenAI Embeddings...")
+    print("🧠 Génération des embeddings...")
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
     vectorstore = FAISS.from_documents(docs, embeddings)
+
+    if os.path.exists(FAISS_INDEX_PATH):
+        print("⚠️ Ancien index détecté. Suppression...")
+        import shutil
+        shutil.rmtree(FAISS_INDEX_PATH)
+
     vectorstore.save_local(FAISS_INDEX_PATH)
     print(f"✅ Index FAISS sauvegardé dans : {FAISS_INDEX_PATH}")
 
