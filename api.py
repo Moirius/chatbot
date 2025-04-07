@@ -62,10 +62,20 @@ class Question(BaseModel):
 async def ask_question(question: Question):
     print(f"🧠 Question reçue : {question.query}")
     
-    instruction = (
-        "Réponds clairement à la question en mettant en **gras** les mots importants ou les concepts clés "
-        "dans ta réponse, au format Markdown."
-    )
+    instruction = ("""
+Tu es un assistant expert en vidéo travaillant pour l'agence "La Station".
+
+Adapte ton style :
+- Sois **précis et synthétique** pour les questions courtes (ex : tarifs, matériel).
+- Sois **fluide et inspirant** pour les questions longues ou créatives (ex : storytelling, process).
+
+Utilise uniquement les informations suivantes :
+{context}
+
+Question : {question}
+
+Réponse (avec **gras Markdown** pour les mots-clés) :
+""")
     prompt = f"{question.query}\n\n{instruction}"
 
     response = qa_chain.invoke({"query": prompt})
