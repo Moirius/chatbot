@@ -44,7 +44,7 @@ vectorstore = FAISS.load_local(
     OpenAIEmbeddings(openai_api_key=openai_api_key),
     allow_dangerous_deserialization=True
 )
-retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4})
+retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 print("✅ Index chargé.")
 
 # 💬 Prompt Markdown-friendly
@@ -53,7 +53,8 @@ prompt_template = PromptTemplate(
     template="""
 Tu es un assistant expert en vidéo travaillant pour l'agence "La Station".
 
-Réponds de façon claire et précise. Adapte ton style 
+Réponds de manière concise, professionnelle et directe. Limite ta réponse à l'essentiel.
+
 
 Utilise uniquement les informations suivantes :
 {context}
