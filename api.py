@@ -53,9 +53,7 @@ prompt_template = PromptTemplate(
     template="""
 Tu es un assistant expert en vidéo travaillant pour l'agence "La Station".
 
-Réponds de façon claire et précise. Adapte ton style :
-- Si la question est simple, sois concis et direct.
-- Si elle est créative ou complexe, sois fluide et narratif.
+Réponds de façon claire et précise. Adapte ton style 
 
 Utilise uniquement les informations suivantes :
 {context}
