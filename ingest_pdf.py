@@ -20,14 +20,21 @@ PDF_PATH = "La Station Entreprise (2).pdf"
 FAISS_INDEX_PATH = "faiss_index"
 
 def load_and_split_pdf(pdf_path):
-    print("📄 Lecture du PDF...")
-    loader = UnstructuredPDFLoader(pdf_path, mode="elements")
+    print("📄 Lecture du PDF avec mode 'paged'...")
+    loader = UnstructuredPDFLoader(pdf_path, mode="paged")  # ← CHANGEMENT ici
     raw_docs = loader.load()
 
-    print("✂️ Découpage en chunks (500 chars, overlap 100)...")
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+    print("✂️ Découpage en chunks (1500 chars, overlap 200)...")
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=200)  # ← CHANGEMENT ici
     docs = splitter.split_documents(raw_docs)
+
     print(f"✅ {len(docs)} chunks générés.")
+
+    # DEBUG : voir les 3 premiers chunks
+    print("\n🧪 Aperçu de quelques chunks :")
+    for i, doc in enumerate(docs[:3]):
+        print(f"\n--- Chunk {i+1} ---\n{doc.page_content[:1000]}\n[...]")
+
     return docs
 
 def create_faiss_index(docs):

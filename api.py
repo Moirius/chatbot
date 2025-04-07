@@ -16,7 +16,7 @@ from langchain.chains import RetrievalQA
 # Charger la clé API depuis .env
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
+if not openai_api_ke
     raise ValueError("❌ Clé API OpenAI non trouvée.")
 
 # Initialisation de l'app FastAPI
@@ -49,7 +49,7 @@ print("✅ Index chargé.")
 retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4})
 qa_chain = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(openai_api_key=openai_api_key, temperature=0),
-    chain_type="stuff",
+    chain_type="map_reduce",
     retriever=retriever,
     return_source_documents=True
 )
