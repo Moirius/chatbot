@@ -16,7 +16,7 @@ from langchain.chains import RetrievalQA
 # Charger la clé API depuis .env
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_ke
+if not openai_api_key :
     raise ValueError("❌ Clé API OpenAI non trouvée.")
 
 # Initialisation de l'app FastAPI
