@@ -1,6 +1,8 @@
 .env
-__pycache__/
-
-
 token.json
 credentials.json
+export_scraping.xlsx
+emails_generes.xlsx
+__pycache__/
+*.pyc
+

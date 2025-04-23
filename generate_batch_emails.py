@@ -69,18 +69,24 @@ def envoyer_email_gmail(destinataire, sujet, contenu, bcc=None):
         print(f" Destinataire invalide: '{destinataire}'. Brouillon non créé.")
         return
 
+        # 🔐 Gestion du token : local ou Render
     creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    token_path = "/etc/secrets/token.json" if os.path.exists("/etc/secrets/token.json") else "token.json"
 
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+
+    # 🔄 Rafraîchir le token si besoin
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
+            # Optionnel : sauvegarde en local s'il est modifié (utile en local uniquement)
+            if token_path == "token.json":
+                with open(token_path, 'w') as token:
+                    token.write(creds.to_json())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+            print("❌ Le token Gmail est manquant ou invalide. Générez-le localement une fois avec credentials.json.")
+            return
 
     try:
         print(" Authentifié avec :", creds.id_token['email'])

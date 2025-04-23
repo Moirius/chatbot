@@ -124,29 +124,39 @@ async def generate_email(info: CompanyInfo):
 
     # 📬 Prompt final
     generation_prompt = f"""
-Tu es un expert en communication pour l'agence audiovisuelle "La Station".
+Tu es un expert en communication travaillant pour l'agence audiovisuelle "La Station Production", basée à Rennes et spécialisée dans la création de vidéos personnalisées pour les entreprises.
 
 Voici le contexte sur notre agence :
 {contexte_station}
 
-Voici les infos de l’entreprise cible :
-- Nom : {info.nom_entreprise}
-- Secteur : {info.secteur}
+Voici les informations sur l’entreprise cible :
+- Nom de l’entreprise : {info.nom_entreprise}
+- Secteur d’activité : {info.secteur}
 - Localisation : {info.localisation}
 - Site web : {info.site_web}
-- Valeurs : {", ".join(info.valeurs)}
+- Valeurs principales : {", ".join(info.valeurs)}
 {contact_section}
 
-🎯 Objectif : Rédige un email de prospection **personnalisé, engageant, professionnel**.
+🎯 Ta mission : Rédige un **email de prospection professionnel, personnalisé et engageant** pour proposer les services de La Station.
 
 Structure demandée :
-- Objet : accroche personnalisée liée à l’entreprise ou au secteur
-- Corps du message : 3 à 4 paragraphes, en commençant par : "{formule_intro}"
-- Call-to-action : claire et orientée vers une prise de contact rapide
-- Signature : nom de l’agence, contact
+1. **Objet** : accroche courte et attractive, en lien avec leur activité ou un bénéfice vidéo
+2. **Introduction** : commence par "{formule_intro}"
+3. **Corps** : 3 à 4 paragraphes qui suivent ce fil :
+   - Observation pertinente sur leur site, communication ou secteur
+   - Suggestion de types de vidéos adaptées à leur profil
+   - Mise en avant des bénéfices concrets (visibilité, image, confiance…)
+4. **Conclusion** : ouverture vers une discussion + mention du site ou du dossier de presse
+5. **Signature** : prénom, nom, nom de l’agence, email, téléphone, site web
 
-Réponds uniquement avec l’email complet prêt à être copié-collé.
+🧠 Ligne éditoriale :
+- Ton professionnel mais chaleureux
+- Met en avant l’expertise de La Station
+- Email prêt à être envoyé, sans phrases génériques
+
+✍️ Réponds uniquement avec l’email complet, bien formaté et prêt à copier-coller.
 """
+
 
     email = llm.invoke(generation_prompt)
     return {"email": email}
