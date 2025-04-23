@@ -98,8 +98,3 @@ async def telegram_webhook(request: Request):
     update = Update.de_json(json_data, application.bot)
     await application.update_queue.put(update)
     return {"status": "ok"}
-
-# Démarrage de l'app avec webhook (Render détectera bien le port)
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("telegram_bot:fastapi_app", host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))

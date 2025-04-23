@@ -13,6 +13,9 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain.chains.retrieval import create_retrieval_chain
+from telegram_bot import fastapi_app as telegram_app
+import os
+
 
 # 🔐 Chargement de la clé OpenAI depuis le fichier .env
 load_dotenv()
@@ -161,3 +164,4 @@ Structure demandée :
     email = llm.invoke(generation_prompt)
     return {"email": email}
 
+app.mount(f"/{os.getenv('TELEGRAM_BOT_TOKEN')}", telegram_app)
