@@ -15,7 +15,7 @@ from googleapiclient.discovery import build
 EXCEL_PATH = "export_scraping.xlsx"
 EXPORT_PATH = "emails_generes.xlsx"
 API_URL = "https://chatbot-o4gm.onrender.com/generate_email"
-BATCH_SIZE = 3
+BATCH_SIZE = 5
 SCOPES = ['https://mail.google.com/']
 
 def charger_donnees(excel_path):
