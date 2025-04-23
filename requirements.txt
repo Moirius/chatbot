@@ -11,4 +11,5 @@ jinja2
 unstructured[pdf]
 pdfminer.six
 pi-heif
+python-telegram-bot==20.7
 
