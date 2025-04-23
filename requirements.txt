@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+langchain-openai
+python-dotenv
+PyMuPDF
+faiss-cpu
+tiktoken
+jinja2
+unstructured[pdf]
+pdfminer.six
+pi-heif
+

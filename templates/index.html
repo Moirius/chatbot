@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>La Station - Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      font-family: 'DM Sans', sans-serif;
+      color: #111;
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #ffffff;
+      padding: 40px 20px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .sidebar img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 60px;
+    }
+
+    #chatbox {
+      font-size: 1.6rem;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      max-width: 900px;
+      margin-bottom: 40px;
+    }
+
+    .input-zone {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .shortcuts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .shortcut-btn {
+      background: #f0f0f0;
+      border: none;
+      border-radius: 25px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .shortcut-btn:hover {
+      background: #e0e0e0;
+    }
+
+    #userInput {
+      width: 100%;
+      padding: 20px;
+      font-size: 1.5rem;
+      border: none;
+      border-radius: 30px;
+      outline: none;
+      background: #444;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    #loader {
+      font-style: italic;
+      font-size: 1rem;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <img src="/static/LOGO_LA_STATION_05.png" alt="Logo La Station">
+  </div>
+  <div class="content">
+    <div>
+      <div id="chatbox"></div>
+      <div id="loader">⏳ Le bot réfléchit...</div>
+    </div>
+
+    <div class="input-zone">
+      <div class="shortcuts">
+        <button class="shortcut-btn" onclick="insertShortcut('Quels types de vidéos proposez-vous ?')">Types de vidéos</button>
+        <button class="shortcut-btn" onclick="insertShortcut('Quels sont vos tarifs ?')">Tarifs</button>
+        <button class="shortcut-btn" onclick="insertShortcut('Comment se déroule un tournage ?')">Déroulement d’un tournage</button>
+        <button class="shortcut-btn" onclick="insertShortcut('Proposez-vous des abonnements ?')">Abonnements</button>
+        <button class="shortcut-btn" onclick="insertShortcut('Quel matériel utilisez-vous ?')">Matériel utilisé</button>
+      </div>
+
+      <input id="userInput" type="text" placeholder="Posez une question..." onkeydown="if(event.key==='Enter'){sendMessage()}" />
+    </div>
+  </div>
+
+  <script>
+    function insertShortcut(text) {
+      document.getElementById("userInput").value = text;
+      document.getElementById("userInput").focus();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const chatbox = document.getElementById("chatbox");
+      const loader = document.getElementById("loader");
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      loader.style.display = "block";
+      input.disabled = true;
+
+      try {
+        const res = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: message })
+        });
+
+        const data = await res.json();
+        const answer = data.answer;
+
+        typeWriterEffect(chatbox, answer);
+      } catch (err) {
+        chatbox.innerHTML += `\n\n❌ Erreur : impossible de contacter le serveur.`;
+        console.error(err);
+      } finally {
+        input.value = "";
+        input.disabled = false;
+        loader.style.display = "none";
+      }
+    }
+
+    function typeWriterEffect(element, text) {
+      let i = 0;
+      element.innerHTML = "";
+      const interval = setInterval(() => {
+        const char = text.charAt(i);
+        if (char === "\n") {
+          element.innerHTML += "<br>";
+        } else {
+          element.innerHTML += char;
+        }
+        i++;
+        if (i >= text.length) clearInterval(interval);
+      }, 15);
+    }
+  </script>
+</body>
+</html>
