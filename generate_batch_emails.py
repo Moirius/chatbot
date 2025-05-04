@@ -1,6 +1,8 @@
 import pandas as pd
 import requests
 from tqdm import tqdm
+from tqdm import tqdm
+import sys
 import os
 import base64
 import ast
@@ -11,12 +13,21 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 # === CONFIGURATION ===
 EXCEL_PATH = "export_scraping.xlsx"
 EXPORT_PATH = "emails_generes.xlsx"
 API_URL = "https://chatbot-o4gm.onrender.com/generate_email"
 BATCH_SIZE = 5
 SCOPES = ['https://mail.google.com/']
+
+USE_LOCAL_API = True
+
+API_URL = "http://127.0.0.1:8000/generate_email" if USE_LOCAL_API else "https://chatbot-o4gm.onrender.com/generate_email"
+
 
 def charger_donnees(excel_path):
     df = pd.read_excel(excel_path)
@@ -98,7 +109,7 @@ def envoyer_email_gmail(destinataire, sujet, contenu, bcc=None):
     message = EmailMessage()
     message.set_content(str(contenu))
     message['To'] = destinataire
-    message['Subject'] = "[Brouillon] " + sujet
+    message['Subject'] = sujet
     if bcc:
         message['Bcc'] = bcc
 
@@ -114,25 +125,26 @@ def main():
         return
 
     df = charger_donnees(EXCEL_PATH)
-    non_traitees = df[df["Traitée"] != True]
+    non_traitees = df[df["Traitée"] != True].sample(frac=1).reset_index(drop=True)
 
     if non_traitees.empty:
         print(" Toutes les entreprises ont déjà été traitées.")
         return
 
-    a_traiter = non_traitees.sample(n=min(BATCH_SIZE, len(non_traitees)))
-    print(f" Génération et envoi d'emails pour {len(a_traiter)} entreprises aléatoires...\n")
-
+    print(f" 🔄 Recherche de {BATCH_SIZE} entreprises valides (avec email)...")
     emails = []
+    entreprises_traitees = 0
 
-    for index, row in tqdm(a_traiter.iterrows(), total=len(a_traiter)):
+    for index, row in tqdm(non_traitees.iterrows(), total=len(non_traitees), file=sys.stdout):
+        if entreprises_traitees >= BATCH_SIZE:
+            break
+
         nom = row.get("nom", "Entreprise inconnue")
         print(f"\n Traitement de : {nom}")
 
         email_objet = generer_email(row)
         email_genere = email_objet.get("content") if isinstance(email_objet, dict) else email_objet
 
-        # Récupération et parsing propre de la liste d'emails
         raw_email = row.get("email", "")
         email_list = []
 
@@ -144,30 +156,27 @@ def main():
         except Exception:
             email_list = []
 
-        # Gestion du cas float (NaN, vide, etc.)
         if not isinstance(email_list, list):
             email_list = []
 
-
-        # Nettoyage et filtrage des emails valides
         emails_valides = []
         for e in email_list:
             e = str(e).strip().lower().rstrip('.')
-
-            # Conditions de validité avancées :
             if (
-                re.match(r"[^@]+@[^@]+\.[a-z]{2,}$", e)  # Format email standard
+                re.match(r"[^@]+@[^@]+\.[a-z]{2,}$", e)
                 and not any(bad in e for bad in ["no-reply", "noreply", "sentry", "portal-", "-web@", "support@", "task@", "frontend", "workflow", "dynamic-data", "document-library", "journal-content"])
                 and not e.count("@") > 1
             ):
                 emails_valides.append(e)
 
         if not emails_valides:
-            print(f" Aucune adresse email valable pour {nom}. Brouillon ignoré.")
+            print(f" Aucune adresse email valable pour {nom}. Entreprise ignorée.")
             continue
 
-        to_field = emails_valides[0]                     # Premier en "To"
-        bcc_field = ", ".join(emails_valides)            # Tous les mails en "Bcc"
+        to_field = emails_valides[0]
+        emails_bcc = [e for e in emails_valides if e != to_field]
+        bcc_field = ", ".join(emails_bcc) if emails_bcc else None
+
 
         sujet = f"Une vidéo sur-mesure pour {nom}"
         envoyer_email_gmail(to_field, sujet, email_genere, bcc=bcc_field)
@@ -176,7 +185,13 @@ def main():
             "Entreprise": nom,
             "Email généré": email_genere
         })
+
         df.at[index, "Traitée"] = True
+        entreprises_traitees += 1
+
+    if not emails:
+        print("❌ Aucun email généré.")
+        return
 
     df_resultats = pd.DataFrame(emails)
     if os.path.exists(EXPORT_PATH):
@@ -186,9 +201,10 @@ def main():
     df_resultats.to_excel(EXPORT_PATH, index=False)
     sauvegarder_donnees(df, EXCEL_PATH)
 
-    print(f"\n Emails générés et brouillons créés pour {len(emails)} entreprises.")
+    print(f"\n Emails générés et brouillons créés pour {len(emails)} entreprises valides.")
     print(f" Sauvegardé dans : {EXPORT_PATH}")
     print(f" Le fichier source a été mis à jour avec le statut 'Traitée'.")
+
 
 if __name__ == "__main__":
     main()
