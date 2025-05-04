@@ -83,4 +83,14 @@ if os.getenv("RENDER_EXTERNAL_HOSTNAME"):
         update = Update.de_json(json_data, application.bot)
         await application.update_queue.put(update)
         return {"status": "ok"}
+    
+    @fastapi_app.on_event("startup")
+    async def set_webhook_startup():
+        webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
+        response = requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
+            data={"url": webhook_url}
+        )
+        print("Webhook setup response:", response.json())
+
 
