@@ -104,10 +104,10 @@ async def ask_question(question: Question):
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-@app.get("/", response_class=HTMLResponse)
-async def serve_home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
 
+@app.get("/")
+async def root():
+    return {"status": "ok"}
 
 
 class CompanyInfo(BaseModel):
@@ -186,4 +186,12 @@ www.lastation-prod.com
 @app.on_event("startup")
 async def set_webhook_startup():
     await telegram_startup()
+
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("api:app", host="0.0.0.0", port=port)
+
 
