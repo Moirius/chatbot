@@ -90,13 +90,8 @@ async def telegram_webhook(request: Request):
         json_data = await request.json()
         print("✅ Webhook reçu :", json_data)
 
-        if not application._initialized:
-            await application.initialize()
-        if not application._running:
-            await application.start()
-
         update = Update.de_json(json_data, application.bot)
-        await application.update_queue.put(update)
+        await application.process_update(update)
         return {"status": "ok"}
 
     except Exception as e:
