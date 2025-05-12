@@ -17,13 +17,13 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 API_BASE_URL = "https://chatbot-o4gm.onrender.com"
-ADMIN_ID = 5059224642
+ADMIN_IDS = [5059224642, 7494796514]  # Remplace 123456789 par l’ID du 2e compte
 WEBHOOK_URL = "https://chatbot-o4gm.onrender.com/webhook"
 
 # === Bot Logic ===
 
 def is_admin(update: Update) -> bool:
-    return update.effective_user.id == ADMIN_ID
+    return update.effective_user.id in ADMIN_IDS
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("📩 Commande /start reçue")

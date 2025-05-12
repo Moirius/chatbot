@@ -26,7 +26,7 @@ from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
 # === CONFIGURATION ===
 EXCEL_PATH = "export_scraping.xlsx"
-BATCH_SIZE = 5
+BATCH_SIZE = 10
 SCOPES = ['https://mail.google.com/']
 USE_LOCAL_API = False
 API_URL = "http://127.0.0.1:8000/generate_email" if USE_LOCAL_API else "https://chatbot-o4gm.onrender.com/generate_email"
