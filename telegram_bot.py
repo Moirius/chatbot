@@ -1,6 +1,6 @@
 import os
-import subprocess
 import requests
+import threading
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -10,6 +10,7 @@ from telegram.ext import (
     Application
 )
 from fastapi import APIRouter, Request
+from generate_batch_emails import main as generate_main
 
 load_dotenv()
 
@@ -24,53 +25,67 @@ def is_admin(update: Update) -> bool:
     return update.effective_user.id == ADMIN_ID
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("📩 Commande /start reçue")
     await update.message.reply_text(f"🤖 Hello {update.effective_user.first_name} ! Bot actif.")
 
 async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("📩 Commande /myid reçue")
     await update.message.reply_text(f"🆔 Ton ID Telegram : {update.effective_user.id}")
 
 async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("📩 Commande /generate reçue")
     if not is_admin(update):
+        print("🚫 Utilisateur non autorisé")
         await update.message.reply_text("🔒 Accès refusé.")
         return
 
-    await update.message.reply_text("⏳ Lancement de la génération d'e-mails...")
-    try:
-        result = subprocess.run(
-            ["python", "generate_batch_emails.py"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace"
-        )
-        output = result.stdout[-4000:] if result.stdout else "(Aucune sortie)"
-        await update.message.reply_text(f"✅ Script terminé :\n{output}")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Erreur : {str(e)}")
+    await update.message.reply_text("⏳ Script lancé. Tu peux suivre son exécution dans les logs Render.")
+
+    def run_script():
+        print("🚀 Démarrage de generate_batch_emails.py en arrière-plan")
+        try:
+            generate_main()
+            print("✅ Script terminé sans erreur")
+        except Exception as e:
+            print(f"❌ Erreur lors de l'exécution du script : {e}")
+
+    threading.Thread(target=run_script).start()
 
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("📩 Commande /ask reçue")
     if not is_admin(update):
+        print("🚫 Utilisateur non autorisé")
         await update.message.reply_text("🔒 Accès refusé.")
         return
+
     question = " ".join(context.args)
     if not question:
         await update.message.reply_text("❓ Utilise : /ask <question>")
         return
+
     try:
+        print(f"🔍 Requête API /ask avec : {question}")
         response = requests.post(f"{API_BASE_URL}/ask", json={"query": question})
-        await update.message.reply_text(f"🧠 Réponse : {response.json().get('answer', '❌')}")
+        response.raise_for_status()
+        result = response.json().get("answer", "❌ Aucune réponse")
+        await update.message.reply_text(f"🧠 Réponse : {result}")
     except Exception as e:
+        print(f"❌ Erreur API /ask : {e}")
         await update.message.reply_text(f"❌ Erreur API : {str(e)}")
 
 async def set_webhook_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("📩 Commande /webhook reçue")
     if not is_admin(update):
+        print("🚫 Utilisateur non autorisé")
         await update.message.reply_text("🔒 Accès refusé.")
         return
+
     r = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook", params={"url": WEBHOOK_URL})
     if r.status_code == 200:
+        print("✅ Webhook Telegram défini avec succès")
         await update.message.reply_text("✅ Webhook activé.")
     else:
+        print(f"❌ Erreur lors du setWebhook : {r.text}")
         await update.message.reply_text(f"❌ Erreur : {r.text}")
 
 # === FastAPI Router for Telegram Webhook ===
