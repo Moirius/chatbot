@@ -75,16 +75,18 @@ def generer_email(p):
     }
 
     try:
-        r = requests.post(API_URL, json=payload)
+        print(f"🔁 Appel API pour : {nom_entreprise}")
+        r = requests.post(API_URL, json=payload, timeout=30)
         r.raise_for_status()
         data = r.json()
-
-        # Assure-toi que tu retournes bien du texte
-        email = data.get("email", "Réponse vide")
-        return str(email)
+        print(f"✅ Email généré pour : {nom_entreprise}")
+        print(data)  # Debug : contenu brut
+        return str(data.get("email", "Réponse vide"))
 
     except Exception as e:
+        print(f"❌ Erreur API pour {nom_entreprise} : {e}")
         return f"Erreur : {e}"
+
 
 
 def envoyer_email_gmail(destinataire, sujet, contenu, bcc=None):
