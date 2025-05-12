@@ -61,7 +61,7 @@ async def set_webhook_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         await update.message.reply_text("🔒 Accès refusé.")
         return
-    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
+    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/webhook"
     r = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook", params={"url": webhook_url})
     if r.status_code == 200:
         await update.message.reply_text("✅ Webhook activé.")
@@ -79,16 +79,17 @@ application.add_handler(CommandHandler("generate", generate))
 application.add_handler(CommandHandler("ask", ask))
 application.add_handler(CommandHandler("webhook", set_webhook_cmd))
 
-@telegram_router.post(f"/{BOT_TOKEN}")
+@telegram_router.post("/webhook")
 async def telegram_webhook(request: Request):
     json_data = await request.json()
+    print("✅ Webhook reçu :", json_data)  # 👈 ajoute cette ligne
     update = Update.de_json(json_data, application.bot)
     await application.update_queue.put(update)
     return {"status": "ok"}
 
 @telegram_router.on_event("startup")
 async def set_webhook_startup():
-    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
+    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/webhook"
     response = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
         data={"url": webhook_url}

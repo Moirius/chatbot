@@ -1,7 +1,10 @@
 # api.py
-
 import os
 from dotenv import load_dotenv
+
+# Charge les variables .env avant tout
+load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -13,23 +16,23 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain.chains.retrieval import create_retrieval_chain
-import os
-from telegram_bot import telegram_router
 
-# 🚀 Initialisation de l'application FastAPI
+import requests
+from telegram_bot import telegram_router, BOT_TOKEN
+
+# ✅ Crée une seule fois l'app FastAPI
 app = FastAPI()
+
 
 app.include_router(telegram_router)
 
 
 # 🔐 Chargement de la clé OpenAI depuis le fichier .env
-load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
     raise ValueError("❌ Clé API OpenAI manquante. Vérifie ton fichier .env.")
 
-# 🚀 Initialisation de l'application FastAPI
-app = FastAPI()
+
 
 # 🌍 Autoriser les appels depuis le frontend local + Render
 app.add_middleware(
@@ -177,3 +180,11 @@ www.lastation-prod.com
     return {"email": email}
 
 
+@app.on_event("startup")
+async def set_webhook_startup():
+    webhook_url = f"https://chatbot-o4gm.onrender.com/webhook"
+    response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
+        data={"url": webhook_url}
+    )
+    print("🎯 Webhook setup response:", response.json())
