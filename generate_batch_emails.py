@@ -16,6 +16,9 @@ import os
 import base64
 import ast
 import re
+import json
+
+from google.oauth2 import service_account
 
 
 
@@ -35,7 +38,6 @@ USE_LOCAL_API = False
 API_URL = "http://127.0.0.1:8000/generate_email" if USE_LOCAL_API else "https://chatbot-o4gm.onrender.com/generate_email"
 
 # === Google Drive ===
-SERVICE_ACCOUNT_FILE = "scraping-453220-4fc95d8027a5.json"
 DRIVE_FILE_ID = "1kxWA9mKsycyHdCEiL5PYOQdh4gv9DFkL"
 
 def charger_donnees(excel_path):
@@ -128,10 +130,16 @@ def envoyer_email_gmail(destinataire, sujet, contenu, bcc=None):
 
 def main():
     # 📥 Télécharger depuis Google Drive
-    creds = ServiceAccountCredentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE,
+    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if not creds_json:
+        raise ValueError("❌ GOOGLE_CREDENTIALS_JSON manquante dans les variables Render")
+
+    creds_dict = json.loads(creds_json)
+    creds = service_account.Credentials.from_service_account_info(
+        creds_dict,
         scopes=["https://www.googleapis.com/auth/drive"]
     )
+
     drive_service = build("drive", "v3", credentials=creds)
 
     print("⬇️ Téléchargement de export_scraping.xlsx depuis Google Drive...")
