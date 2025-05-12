@@ -15,7 +15,7 @@ def main():
     app.add_handler(CommandHandler("generate", generate))
     app.add_handler(CommandHandler("ask", ask))
     app.add_handler(CommandHandler("webhook", set_webhook_cmd))
-    print("🚀 Bot lancé en mode polling")
+    print(" Bot lancé en mode polling")
     app.run_polling()
 
 if __name__ == "__main__":

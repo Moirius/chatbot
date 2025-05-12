@@ -1,19 +1,19 @@
-# telegram_bot.py
 import os
 import subprocess
 import requests
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Application
+from fastapi import APIRouter, Request
 
-# 🔐 .env
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 API_BASE_URL = "https://chatbot-o4gm.onrender.com"
 ADMIN_ID = 5059224642
 
-# Bot logic only
+# === Bot Logic ===
+
 def is_admin(update: Update) -> bool:
     return update.effective_user.id == ADMIN_ID
 
@@ -27,10 +27,18 @@ async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         await update.message.reply_text("🔒 Accès refusé.")
         return
+
     await update.message.reply_text("⏳ Lancement de la génération d'e-mails...")
     try:
-        result = subprocess.run(["python", "generate_batch_emails.py"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        output = result.stdout[-1000:] if result.stdout else "(Aucune sortie)"
+        result = subprocess.run(
+            ["python", "generate_batch_emails.py"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace"  # 🔧 pour éviter l'erreur charmap
+        )
+        output = result.stdout[-4000:] if result.stdout else "(Aucune sortie)"
         await update.message.reply_text(f"✅ Script terminé :\n{output}")
     except Exception as e:
         await update.message.reply_text(f"❌ Erreur : {str(e)}")
@@ -60,37 +68,29 @@ async def set_webhook_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"❌ Erreur : {r.text}")
 
+# === FastAPI Router for Telegram Webhook ===
+telegram_router = APIRouter()
 
-if os.getenv("RENDER_EXTERNAL_HOSTNAME"):
-    from fastapi import FastAPI, Request
-    from telegram.ext import ApplicationBuilder, CommandHandler
+# Crée le bot Telegram
+application = ApplicationBuilder().token(BOT_TOKEN).build()
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("myid", myid))
+application.add_handler(CommandHandler("generate", generate))
+application.add_handler(CommandHandler("ask", ask))
+application.add_handler(CommandHandler("webhook", set_webhook_cmd))
 
-    # Crée le bot pour webhook (production uniquement)
-    from telegram_bot import BOT_TOKEN, start, myid, generate, ask, set_webhook_cmd
+@telegram_router.post(f"/{BOT_TOKEN}")
+async def telegram_webhook(request: Request):
+    json_data = await request.json()
+    update = Update.de_json(json_data, application.bot)
+    await application.update_queue.put(update)
+    return {"status": "ok"}
 
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("myid", myid))
-    application.add_handler(CommandHandler("generate", generate))
-    application.add_handler(CommandHandler("ask", ask))
-    application.add_handler(CommandHandler("webhook", set_webhook_cmd))
-
-    fastapi_app = FastAPI()
-
-    @fastapi_app.post(f"/{BOT_TOKEN}")
-    async def telegram_webhook(request: Request):
-        json_data = await request.json()
-        update = Update.de_json(json_data, application.bot)
-        await application.update_queue.put(update)
-        return {"status": "ok"}
-    
-    @fastapi_app.on_event("startup")
-    async def set_webhook_startup():
-        webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
-        response = requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
-            data={"url": webhook_url}
-        )
-        print("Webhook setup response:", response.json())
-
-
+@telegram_router.on_event("startup")
+async def set_webhook_startup():
+    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
+    response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
+        data={"url": webhook_url}
+    )
+    print("Webhook setup response:", response.json())

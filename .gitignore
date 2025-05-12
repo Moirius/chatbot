@@ -1,8 +1,14 @@
+# 🔐 Ne jamais versionner les secrets
 .env
+*.json
 token.json
 credentials.json
+scraping-*.json
+
+# 📄 Fichiers Excel générés
 export_scraping.xlsx
 emails_generes.xlsx
+
+# 🐍 Fichiers Python temporaires
 __pycache__/
 *.pyc
-
