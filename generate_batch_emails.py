@@ -232,7 +232,4 @@ def main(bot=None, chat_id=None):
 
     if bot and chat_id:
         bot.send_message(chat_id=chat_id, text=f"📤 {entreprises_traitees} entreprises traitées avec succès.")
-
-
-if __name__ == "__main__":
-    main()
+        bot.send_message(chat_id=chat_id, text="✅ Script terminé. 🎉")
