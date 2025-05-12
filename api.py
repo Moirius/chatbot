@@ -17,7 +17,10 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain.chains.retrieval import create_retrieval_chain
 
+
+
 import requests
+from telegram_bot import set_webhook_startup as telegram_startup
 from telegram_bot import telegram_router, BOT_TOKEN
 
 # ✅ Crée une seule fois l'app FastAPI
@@ -182,9 +185,5 @@ www.lastation-prod.com
 
 @app.on_event("startup")
 async def set_webhook_startup():
-    webhook_url = f"https://chatbot-o4gm.onrender.com/webhook"
-    response = requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
-        data={"url": webhook_url}
-    )
-    print("🎯 Webhook setup response:", response.json())
+    await telegram_startup()
+

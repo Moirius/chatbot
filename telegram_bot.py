@@ -1,10 +1,14 @@
 import os
 import subprocess
 import requests
-import asyncio
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Application
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+    Application
+)
 from fastapi import APIRouter, Request
 
 load_dotenv()
@@ -12,6 +16,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 API_BASE_URL = "https://chatbot-o4gm.onrender.com"
 ADMIN_ID = 5059224642
+WEBHOOK_URL = "https://chatbot-o4gm.onrender.com/webhook"
 
 # === Bot Logic ===
 
@@ -62,8 +67,7 @@ async def set_webhook_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         await update.message.reply_text("🔒 Accès refusé.")
         return
-    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/webhook"
-    r = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook", params={"url": webhook_url})
+    r = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook", params={"url": WEBHOOK_URL})
     if r.status_code == 200:
         await update.message.reply_text("✅ Webhook activé.")
     else:
@@ -79,7 +83,6 @@ application.add_handler(CommandHandler("myid", myid))
 application.add_handler(CommandHandler("generate", generate))
 application.add_handler(CommandHandler("ask", ask))
 application.add_handler(CommandHandler("webhook", set_webhook_cmd))
-
 
 @telegram_router.post("/webhook")
 async def telegram_webhook(request: Request):
@@ -99,12 +102,17 @@ async def telegram_webhook(request: Request):
         print("❌ Erreur dans le webhook :", str(e))
         return {"status": "error", "message": str(e)}
 
+# Appelé depuis api.py
+async def start_bot():
+    if not application.ready:
+        await application.initialize()
+        await application.start()
 
-@telegram_router.on_event("startup")
 async def set_webhook_startup():
-    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/webhook"
+    print("🎯 Lancement du bot Telegram...")
+    await start_bot()
     response = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
-        data={"url": webhook_url}
+        data={"url": WEBHOOK_URL}
     )
-    print("Webhook setup response:", response.json())
+    print("🎯 Webhook setup response:", response.json())
