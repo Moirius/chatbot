@@ -130,7 +130,7 @@ def envoyer_email_gmail(destinataire, sujet, contenu, bcc=None):
     except Exception as e:
         print(f"❌ Erreur lors de la création du brouillon : {str(e)}")
 
-def main():
+def main(bot=None, chat_id=None):
     # 📥 Télécharger depuis Google Drive
     creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
     if not creds_json:
@@ -158,7 +158,10 @@ def main():
     non_traitees = df[df["Traitée"] != True].sample(frac=1).reset_index(drop=True)
 
     if non_traitees.empty:
-        print("Toutes les entreprises ont déjà été traitées.")
+        message = "✅ Le fichier est bien lu, mais aucune entreprise à traiter (tout est déjà fait)."
+        print(message)
+        if bot and chat_id:
+            bot.send_message(chat_id, text=message)
         return
 
     print(f"🔄 Recherche de {BATCH_SIZE} entreprises valides (avec email)...")
@@ -170,6 +173,9 @@ def main():
 
         nom = row.get("nom", "Entreprise inconnue")
         print(f"\nTraitement de : {nom}")
+
+        if bot and chat_id:
+            bot.send_message(chat_id=chat_id, text=f"📨 Génération d’e-mail pour : {nom}")
 
         email_genere = generer_email(row)
         email_genere = email_genere.replace("\\n", "\n").replace("\r", "").strip()
@@ -199,6 +205,8 @@ def main():
 
         if not emails_valides:
             print(f"❌ Aucune adresse email valable pour {nom}.")
+            if bot and chat_id:
+                bot.send_message(chat_id=chat_id, text=f"⚠️ Aucune adresse email valable pour : {nom}")
             continue
 
         to_field = emails_valides[0]
@@ -221,6 +229,10 @@ def main():
     ).execute()
     print(f"✅ Fichier mis à jour dans Drive : {updated_file.get('name')}")
     print(f"\n✅ Emails générés et brouillons créés pour {entreprises_traitees} entreprises.")
+
+    if bot and chat_id:
+        bot.send_message(chat_id=chat_id, text=f"📤 {entreprises_traitees} entreprises traitées avec succès.")
+
 
 if __name__ == "__main__":
     main()

@@ -11,6 +11,8 @@ from telegram.ext import (
 )
 from fastapi import APIRouter, Request
 from generate_batch_emails import main as generate_main
+from telegram import Bot
+from generate_batch_emails import main as generate_main
 
 load_dotenv()
 
@@ -39,15 +41,19 @@ async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🔒 Accès refusé.")
         return
 
-    await update.message.reply_text("⏳ Script lancé. Tu peux suivre son exécution dans les logs Render.")
+    await update.message.reply_text("⏳ Script lancé...")
+
+    bot = context.bot
+    chat_id = update.effective_chat.id
 
     def run_script():
-        print("🚀 Démarrage de generate_batch_emails.py en arrière-plan")
+        print("🚀 Démarrage du script avec messages Telegram")
         try:
-            generate_main()
-            print("✅ Script terminé sans erreur")
+            generate_main(bot=bot, chat_id=chat_id)
+            bot.send_message(chat_id=chat_id, text="✅ Script terminé.")
         except Exception as e:
-            print(f"❌ Erreur lors de l'exécution du script : {e}")
+            bot.send_message(chat_id=chat_id, text=f"❌ Erreur dans le script : {e}")
+            print(f"❌ Erreur dans le thread generate : {e}")
 
     threading.Thread(target=run_script).start()
 
