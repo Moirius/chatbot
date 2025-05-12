@@ -83,15 +83,21 @@ application.add_handler(CommandHandler("webhook", set_webhook_cmd))
 
 @telegram_router.post("/webhook")
 async def telegram_webhook(request: Request):
-    json_data = await request.json()
-    print("✅ Webhook reçu :", json_data)
-    
-    if not application.ready:
-        await application.initialize()
+    try:
+        json_data = await request.json()
+        print("✅ Webhook reçu :", json_data)
 
-    update = Update.de_json(json_data, application.bot)
-    await application.update_queue.put(update)
-    return {"status": "ok"}
+        if not application.ready:
+            await application.initialize()
+            await application.start()
+
+        update = Update.de_json(json_data, application.bot)
+        await application.update_queue.put(update)
+        return {"status": "ok"}
+
+    except Exception as e:
+        print("❌ Erreur dans le webhook :", str(e))
+        return {"status": "error", "message": str(e)}
 
 
 @telegram_router.on_event("startup")
