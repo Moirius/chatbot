@@ -44,23 +44,23 @@ async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     bot = context.bot
     chat_id = update.effective_chat.id
+    loop = asyncio.get_running_loop()
 
     def run_script():
         print("🚀 Démarrage du script avec messages Telegram")
-        try:
-            # Exécute le script principal en lui passant une fonction callback
-            generate_main(
-                bot=bot,
-                chat_id=chat_id,
-                send=lambda text: asyncio.run_coroutine_threadsafe(
-                    bot.send_message(chat_id=chat_id, text=text),
-                    application.bot.loop
-                )
+
+        def send(text):
+            asyncio.run_coroutine_threadsafe(
+                bot.send_message(chat_id=chat_id, text=text),
+                loop
             )
+
+        try:
+            generate_main(send=send)
         except Exception as e:
             asyncio.run_coroutine_threadsafe(
                 bot.send_message(chat_id=chat_id, text=f"❌ Erreur dans le script : {e}"),
-                application.bot.loop
+                loop
             )
             print(f"❌ Erreur dans le thread generate : {e}")
 
