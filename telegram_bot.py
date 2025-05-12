@@ -80,17 +80,19 @@ application.add_handler(CommandHandler("generate", generate))
 application.add_handler(CommandHandler("ask", ask))
 application.add_handler(CommandHandler("webhook", set_webhook_cmd))
 
-# ✅ Démarre l'application Telegram en arrière-plan
-asyncio.create_task(application.initialize())
-asyncio.create_task(application.start())
 
 @telegram_router.post("/webhook")
 async def telegram_webhook(request: Request):
     json_data = await request.json()
     print("✅ Webhook reçu :", json_data)
+    
+    if not application.ready:
+        await application.initialize()
+
     update = Update.de_json(json_data, application.bot)
     await application.update_queue.put(update)
     return {"status": "ok"}
+
 
 @telegram_router.on_event("startup")
 async def set_webhook_startup():
