@@ -1,6 +1,7 @@
 import os
 import subprocess
 import requests
+import asyncio
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Application
@@ -36,7 +37,7 @@ async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
             stderr=subprocess.STDOUT,
             text=True,
             encoding="utf-8",
-            errors="replace"  # 🔧 pour éviter l'erreur charmap
+            errors="replace"
         )
         output = result.stdout[-4000:] if result.stdout else "(Aucune sortie)"
         await update.message.reply_text(f"✅ Script terminé :\n{output}")
@@ -79,10 +80,14 @@ application.add_handler(CommandHandler("generate", generate))
 application.add_handler(CommandHandler("ask", ask))
 application.add_handler(CommandHandler("webhook", set_webhook_cmd))
 
+# ✅ Démarre l'application Telegram en arrière-plan
+asyncio.create_task(application.initialize())
+asyncio.create_task(application.start())
+
 @telegram_router.post("/webhook")
 async def telegram_webhook(request: Request):
     json_data = await request.json()
-    print("✅ Webhook reçu :", json_data)  # 👈 ajoute cette ligne
+    print("✅ Webhook reçu :", json_data)
     update = Update.de_json(json_data, application.bot)
     await application.update_queue.put(update)
     return {"status": "ok"}
