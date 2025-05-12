@@ -2,7 +2,7 @@ import os
 import requests
 import threading
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import Update, Bot
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -10,8 +10,6 @@ from telegram.ext import (
     Application
 )
 from fastapi import APIRouter, Request
-from generate_batch_emails import main as generate_main
-from telegram import Bot
 from generate_batch_emails import main as generate_main
 
 load_dotenv()
@@ -71,7 +69,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         print(f"🔍 Requête API /ask avec : {question}")
-        response = requests.post(f"{API_BASE_URL}/ask", json={"query": question})
+        response = requests.post(f"{API_BASE_URL}/ask", json={"query": question}, timeout=15)
         response.raise_for_status()
         result = response.json().get("answer", "❌ Aucune réponse")
         await update.message.reply_text(f"🧠 Réponse : {result}")
@@ -121,16 +119,20 @@ async def telegram_webhook(request: Request):
 
 # Appelé depuis api.py
 async def start_bot():
+    print("🚀 Initialisation du bot Telegram...")
     if not application._initialized:
         await application.initialize()
     if not application._running:
         await application.start()
+    print("✅ Bot Telegram démarré.")
 
 async def set_webhook_startup():
     print("🎯 Lancement du bot Telegram...")
     await start_bot()
+
+    print("🌐 Enregistrement du webhook Telegram...")
     response = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
-        data={"url": WEBHOOK_URL}
+        data={"url": WEBHOOK_URL, "drop_pending_updates": True}
     )
     print("🎯 Webhook setup response:", response.json())
