@@ -15,4 +15,6 @@ python-telegram-bot==20.7
 gspread
 google-auth
 google-api-python-client
+openpyxl
+
 
