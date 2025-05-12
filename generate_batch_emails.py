@@ -8,7 +8,6 @@ if platform.system() == "Windows":
 else:
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# Ensuite seulement les autres imports
 import pandas as pd
 import requests
 from tqdm import tqdm
@@ -19,16 +18,11 @@ import re
 import json
 
 from google.oauth2 import service_account
-
-
-
 from email.message import EmailMessage
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
-
 
 # === CONFIGURATION ===
 EXCEL_PATH = "export_scraping.xlsx"
@@ -36,8 +30,6 @@ BATCH_SIZE = 5
 SCOPES = ['https://mail.google.com/']
 USE_LOCAL_API = False
 API_URL = "http://127.0.0.1:8000/generate_email" if USE_LOCAL_API else "https://chatbot-o4gm.onrender.com/generate_email"
-
-# === Google Drive ===
 DRIVE_FILE_ID = "1kxWA9mKsycyHdCEiL5PYOQdh4gv9DFkL"
 
 def charger_donnees(excel_path):
@@ -75,24 +67,21 @@ def generer_email(p):
     }
 
     try:
-        print(f"🔁 Appel API pour : {nom_entreprise}")
+        print(f"🔁 Appel API pour : {nom_entreprise}", flush=True)
         r = requests.post(API_URL, json=payload, timeout=30)
         r.raise_for_status()
         data = r.json()
-        print(f"✅ Email généré pour : {nom_entreprise}")
-        print(data)  # Debug : contenu brut
+        print(f"✅ Email généré pour : {nom_entreprise}", flush=True)
+        print(data, flush=True)
         return str(data.get("email", "Réponse vide"))
-
     except Exception as e:
-        print(f"❌ Erreur API pour {nom_entreprise} : {e}")
+        print(f"❌ Erreur API pour {nom_entreprise} : {e}", flush=True)
         return f"Erreur : {e}"
 
-
-
 def envoyer_email_gmail(destinataire, sujet, contenu, bcc=None):
-    print(f"📤 Envoi d’un e-mail à : {destinataire}")
+    print(f"📤 Envoi d’un e-mail à : {destinataire}", flush=True)
     if not destinataire or "@" not in destinataire:
-        print(f"❌ Destinataire invalide: '{destinataire}'. Brouillon non créé.")
+        print(f"❌ Destinataire invalide: '{destinataire}'. Brouillon non créé.", flush=True)
         return
 
     creds = None
@@ -108,16 +97,13 @@ def envoyer_email_gmail(destinataire, sujet, contenu, bcc=None):
                 with open(token_path, 'w') as token:
                     token.write(creds.to_json())
         else:
-            print("❌ Le token Gmail est manquant ou invalide. Générez-le localement une fois avec credentials.json.")
+            print("❌ Le token Gmail est manquant ou invalide.", flush=True)
             return
 
     try:
         service = build('gmail', 'v1', credentials=creds)
         message = EmailMessage()
-
-        # ✅ Texte brut seulement pour belle mise en page
         message.set_content(str(contenu), subtype='plain', charset='utf-8')
-
         message['To'] = destinataire
         message['Subject'] = sujet
         if bcc:
@@ -126,45 +112,42 @@ def envoyer_email_gmail(destinataire, sujet, contenu, bcc=None):
         encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
         raw_message = {'raw': encoded_message}
         draft = service.users().drafts().create(userId="me", body={"message": raw_message}).execute()
-        print(f"✅ Brouillon créé pour {destinataire} (ID : {draft['id']})")
+        print(f"✅ Brouillon créé pour {destinataire} (ID : {draft['id']})", flush=True)
     except Exception as e:
-        print(f"❌ Erreur lors de la création du brouillon : {str(e)}")
+        print(f"❌ Erreur lors de la création du brouillon : {str(e)}", flush=True)
 
-def main(bot=None, chat_id=None):
-    # 📥 Télécharger depuis Google Drive
+def main(bot=None, chat_id=None, send=None):
     creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
     if not creds_json:
         raise ValueError("❌ GOOGLE_CREDENTIALS_JSON manquante dans les variables Render")
 
     creds_dict = json.loads(creds_json)
     creds = service_account.Credentials.from_service_account_info(
-        creds_dict,
-        scopes=["https://www.googleapis.com/auth/drive"]
+        creds_dict, scopes=["https://www.googleapis.com/auth/drive"]
     )
 
     drive_service = build("drive", "v3", credentials=creds)
 
-    print("⬇️ Téléchargement de export_scraping.xlsx depuis Google Drive...")
+    print("⬇️ Téléchargement de export_scraping.xlsx depuis Google Drive...", flush=True)
     request = drive_service.files().get_media(fileId=DRIVE_FILE_ID)
     fh = io.FileIO(EXCEL_PATH, 'wb')
     downloader = MediaIoBaseDownload(fh, request)
     done = False
     while not done:
         status, done = downloader.next_chunk()
-        print(f"   Téléchargement : {int(status.progress() * 100)}%")
+        print(f"   Téléchargement : {int(status.progress() * 100)}%", flush=True)
 
-    # 📊 Traitement
     df = charger_donnees(EXCEL_PATH)
     non_traitees = df[df["Traitée"] != True].sample(frac=1).reset_index(drop=True)
 
     if non_traitees.empty:
-        message = "✅ Le fichier est bien lu, mais aucune entreprise à traiter (tout est déjà fait)."
-        print(message)
-        if bot and chat_id:
-            bot.send_message(chat_id, text=message)
+        msg = "✅ Le fichier est bien lu, mais aucune entreprise à traiter (tout est déjà fait)."
+        print(msg, flush=True)
+        if send:
+            send(msg)
         return
 
-    print(f"🔄 Recherche de {BATCH_SIZE} entreprises valides (avec email)...")
+    print(f"🔄 Recherche de {BATCH_SIZE} entreprises valides (avec email)...", flush=True)
     entreprises_traitees = 0
 
     for index, row in tqdm(non_traitees.iterrows(), total=len(non_traitees), file=sys.stdout):
@@ -172,10 +155,9 @@ def main(bot=None, chat_id=None):
             break
 
         nom = row.get("nom", "Entreprise inconnue")
-        print(f"\nTraitement de : {nom}")
-
-        if bot and chat_id:
-            bot.send_message(chat_id=chat_id, text=f"📨 Génération d’e-mail pour : {nom}")
+        print(f"\nTraitement de : {nom}", flush=True)
+        if send:
+            send(f"📨 Génération d’e-mail pour : {nom}")
 
         email_genere = generer_email(row)
         email_genere = email_genere.replace("\\n", "\n").replace("\r", "").strip()
@@ -204,9 +186,9 @@ def main(bot=None, chat_id=None):
                 emails_valides.append(e)
 
         if not emails_valides:
-            print(f"❌ Aucune adresse email valable pour {nom}.")
-            if bot and chat_id:
-                bot.send_message(chat_id=chat_id, text=f"⚠️ Aucune adresse email valable pour : {nom}")
+            print(f"❌ Aucune adresse email valable pour {nom}.", flush=True)
+            if send:
+                send(f"⚠️ Aucune adresse email valable pour : {nom}")
             continue
 
         to_field = emails_valides[0]
@@ -220,16 +202,14 @@ def main(bot=None, chat_id=None):
 
     sauvegarder_donnees(df, EXCEL_PATH)
 
-    # 📤 Ré-upload dans Google Drive
-    print("📤 Ré-upload du fichier modifié vers Google Drive...")
+    print("📤 Ré-upload du fichier modifié vers Google Drive...", flush=True)
     media = MediaFileUpload(EXCEL_PATH, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     updated_file = drive_service.files().update(
-        fileId=DRIVE_FILE_ID,
-        media_body=media
+        fileId=DRIVE_FILE_ID, media_body=media
     ).execute()
-    print(f"✅ Fichier mis à jour dans Drive : {updated_file.get('name')}")
-    print(f"\n✅ Emails générés et brouillons créés pour {entreprises_traitees} entreprises.")
+    print(f"✅ Fichier mis à jour dans Drive : {updated_file.get('name')}", flush=True)
+    print(f"\n✅ Emails générés et brouillons créés pour {entreprises_traitees} entreprises.", flush=True)
 
-    if bot and chat_id:
-        bot.send_message(chat_id=chat_id, text=f"📤 {entreprises_traitees} entreprises traitées avec succès.")
-        bot.send_message(chat_id=chat_id, text="✅ Script terminé. 🎉")
+    if send:
+        send(f"📤 {entreprises_traitees} entreprises traitées avec succès.")
+        send("✅ Script terminé. 🎉")
